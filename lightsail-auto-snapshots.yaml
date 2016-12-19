@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Transform: AWS::Serverless-2016-10-31
+
+Description: >
+  Automatically create snapshots from all Lightsail Virtual Private Servers
+  each day and prune snapshots after a retention period.
+
+Parameters:
+  RetentionDays:
+    Type: String
+    Description: The number of days to retain snapshots.
+    Default: 30
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterLabels:
+      RetentionDays:
+        default: Retention Days
+
+Resources:
+  AutoSnapshot:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: >
+        Automatically create snapshots from all Lightsail Virtual Private
+        Servers and prune snapshots after a retention period.
+      CodeUri: ./lambda
+      Runtime: python2.7
+      Timeout: 60
+      Handler: index.handler
+      Environment:
+        Variables:
+          RETENTION_DAYS: !Ref RetentionDays
+      Events:
+        Daily:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 day)
+      Policies:
+          Statement:
+            - Resource: "*"
+              Effect: Allow
+              Action:
+                - lightsail:GetInstances
+                - lightsail:GetInstanceSnapshots
+                - lightsail:CreateInstanceSnapshot
+                - lightsail:DeleteInstanceSnapshot
