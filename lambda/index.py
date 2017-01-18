@@ -49,8 +49,8 @@ def _get_paginated_collection(function, key, page_token=None, collection=None):
     collection += response[key]
 
     if 'nextPageToken' in response:
-        get_paginated_collection(function, key, collection=collection,
-                                 page_token=response['nextPageToken'])
+        _get_paginated_collection(function, key, collection=collection,
+                                  page_token=response['nextPageToken'])
 
     return collection
 
