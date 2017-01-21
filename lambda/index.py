@@ -13,7 +13,7 @@ def handler(event, context):
     retention_period = timedelta(days=retention_days)
 
     _snapshot_instances(client)
-    _prune_snapshots(client, retention_days)
+    _prune_snapshots(client, retention_period)
 
 
 def _snapshot_instances(client):
