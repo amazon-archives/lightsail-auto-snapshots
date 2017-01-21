@@ -3,7 +3,7 @@
 set -o errexit -o xtrace
 
 region=us-east-1
-retention_days=${2:-14}
+retention_days=${1:-14}
 bucket_name="temp-lightsail-auto-snapshots-$(openssl rand -hex 8)"
 
 aws s3 mb "s3://${bucket_name}" --region="${region}"
