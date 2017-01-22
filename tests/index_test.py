@@ -4,10 +4,9 @@ import sys
 import unittest
 from botocore.stub import Stubber
 from datetime import datetime, timedelta
-from mock import *
+from mock import Mock, MagicMock, patch
 from StringIO import StringIO
 from test.test_support import EnvironmentVarGuard
-from time import time
 
 sys.path.insert(0, os.path.abspath('lambda'))
 import index
@@ -96,10 +95,9 @@ class TestLightsailAutoSnapshots(unittest.TestCase):
         Tests that the handler honors the value of RENTENTION_DAYS and calls
         the snapshot and prune functions with the expected values.
         """
+        client = Mock()
         self.env = EnvironmentVarGuard()
         self.env.set('RETENTION_DAYS', '90')
-
-        client = Mock()
 
         with patch('boto3.client', return_value=client):
             with self.env:
