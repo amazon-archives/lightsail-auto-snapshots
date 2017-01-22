@@ -14,6 +14,12 @@ import index
 
 class TestLightsailAutoSnapshots(unittest.TestCase):
     def test_snapshot_instances(self):
+        """
+        Tests instance snapshotting by stubbing one instance in the response to
+        the get_instances call and verifying the create_instance_snapshot API
+        endpoint is called with the expected parameters and verifying the
+        output.
+        """
         mock_time = MagicMock()
         mock_time.return_value = 1485044158
         logger = StringIO()
@@ -34,12 +40,19 @@ class TestLightsailAutoSnapshots(unittest.TestCase):
             logger.getvalue().strip())
 
     def test_prune_snapshots(self):
+        """
+        Tests snapshot pruning by providing three snapshots - one manual and
+        two automatic of which one is has an elapsed retention period. The
+        test asserts that only the eligible snapshot is pruned via stubbing
+        the API call to delete_instance_snapshot and verifying the output.
+        """
         mock_dt = MagicMock()
         mock_dt.now.return_value = datetime(2016, 12, 2)
         logger = StringIO()
         client = boto3.client('lightsail')
         stubber = Stubber(client)
         stubber.add_response('get_instance_snapshots', {'instanceSnapshots': [
+            {'name': 'snapshot-manual', 'createdAt': datetime(2016, 12, 1)},
             {'name': 'new-snapshot-auto', 'createdAt': datetime(2016, 12, 1)},
             {'name': 'old-snapshot-auto', 'createdAt': datetime(2016, 10, 15)}
             ]})
@@ -52,6 +65,28 @@ class TestLightsailAutoSnapshots(unittest.TestCase):
         stubber.assert_no_pending_responses()
         self.assertEqual('Deleted Snapshot name="old-snapshot-auto"',
                          logger.getvalue().strip())
+
+    def test_pagination(self):
+        """
+        Tests pagination by returning three pages of results and asserts each
+        request is made with the expected pageToken.
+        """
+        client = boto3.client('lightsail')
+        stubber = Stubber(client)
+        stubber.add_response('get_instance_snapshots', {'instanceSnapshots': [
+            {'name': 'snapshot1', 'createdAt': datetime(2016, 12, 1)},
+            ], 'nextPageToken': 'token1'})
+        stubber.add_response('get_instance_snapshots', {'instanceSnapshots': [
+            {'name': 'snapshot2', 'createdAt': datetime(2016, 12, 2)},
+            ], 'nextPageToken': 'token2'}, {'pageToken': 'token1'})
+        stubber.add_response('get_instance_snapshots', {'instanceSnapshots': [
+            {'name': 'snapshot2', 'createdAt': datetime(2016, 12, 3)},
+            ]}, {'pageToken': 'token2'})
+        stubber.activate()
+
+        index._prune_snapshots(client, timedelta(days=5))
+
+        stubber.assert_no_pending_responses()
 
 if __name__ == '__main__':
     unittest.main()
