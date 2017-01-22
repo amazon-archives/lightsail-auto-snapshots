@@ -1,6 +1,8 @@
+from __future__ import print_function
 import boto3
 from datetime import datetime, timedelta
 from os import getenv
+from sys import stdout
 from time import time
 
 DEFAULT_RETENTION_DAYS = 30
@@ -16,24 +18,32 @@ def handler(event, context):
     _prune_snapshots(client, retention_period)
 
 
-def _snapshot_instances(client):
+def _snapshot_instances(client, time=time, out=stdout):
     instances = _get_paginated_collection(client.get_instances, 'instances')
 
     for instance in instances:
-        _create_snapshot(client, instance['name'])
+        snapshot_name = '{}-system-{}-{}'.format(instance['name'],
+                                                 int(time() * 1000),
+                                                 AUTO_SNAPSHOT_SUFFIX)
+
+        client.create_instance_snapshot(instanceName=instance['name'],
+                                        instanceSnapshotName=snapshot_name)
+        print('Created Snapshot name="{}"'.format(snapshot_name), file=out)
 
 
-def _prune_snapshots(client, retention_period):
+def _prune_snapshots(client, retention_period, datetime=datetime, out=stdout):
     snapshots = _get_paginated_collection(client.get_instance_snapshots,
                                           'instanceSnapshots')
 
     for snapshot in snapshots:
-        now = datetime.now().replace(tzinfo=snapshot['createdAt'].tzinfo)
-        time_elapsed = now - snapshot['createdAt']
+        name, created_at = snapshot['name'], snapshot['createdAt']
+        now = datetime.now(created_at.tzinfo)
+        is_automated_snapshot = name.endswith(AUTO_SNAPSHOT_SUFFIX)
+        has_elapsed_retention_period = now - created_at > retention_period
 
-        if (snapshot['name'].endswith(AUTO_SNAPSHOT_SUFFIX) and
-                time_elapsed > retention_period):
-            _delete_snapshot(client, snapshot['name'], snapshot['createdAt'])
+        if (is_automated_snapshot and has_elapsed_retention_period):
+            client.delete_instance_snapshot(instanceSnapshotName=name)
+            print('Deleted Snapshot name="{}"'.format(name), file=out)
 
 
 def _get_paginated_collection(function, key, page_token=None, collection=None):
@@ -53,17 +63,3 @@ def _get_paginated_collection(function, key, page_token=None, collection=None):
                                   page_token=response['nextPageToken'])
 
     return collection
-
-
-def _create_snapshot(client, instance_name):
-    snapshot_name = '{}-system-{}-{}'.format(instance_name, int(time() * 1000),
-                                             AUTO_SNAPSHOT_SUFFIX)
-
-    client.create_instance_snapshot(instanceName=instance_name,
-                                    instanceSnapshotName=snapshot_name)
-    print('Created Snapshot name="{}"'.format(snapshot_name))
-
-
-def _delete_snapshot(client, name, created_at):
-    client.delete_instance_snapshot(instanceSnapshotName=name)
-    print('Deleted Snapshot name="{}" createdAt="{}"'.format(name, created_at))
