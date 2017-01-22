@@ -6,6 +6,7 @@ from botocore.stub import Stubber
 from datetime import datetime, timedelta
 from mock import *
 from StringIO import StringIO
+from test.test_support import EnvironmentVarGuard
 from time import time
 
 sys.path.insert(0, os.path.abspath('lambda'))
@@ -87,6 +88,25 @@ class TestLightsailAutoSnapshots(unittest.TestCase):
         index._prune_snapshots(client, timedelta(days=5))
 
         stubber.assert_no_pending_responses()
+
+    @patch('index._prune_snapshots')
+    @patch('index._snapshot_instances')
+    def test_handler(self, snapshot_instances_mock, prune_snapshots_mock):
+        """
+        Tests that the handler honors the value of RENTENTION_DAYS and calls
+        the snapshot and prune functions with the expected values.
+        """
+        self.env = EnvironmentVarGuard()
+        self.env.set('RETENTION_DAYS', '90')
+
+        client = Mock()
+
+        with patch('boto3.client', return_value=client):
+            with self.env:
+                index.handler(Mock(), Mock())
+
+        snapshot_instances_mock.assert_called_with(client)
+        prune_snapshots_mock.assert_called_with(client, timedelta(days=90))
 
 if __name__ == '__main__':
     unittest.main()
