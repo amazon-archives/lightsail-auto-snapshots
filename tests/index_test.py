@@ -95,16 +95,17 @@ class TestLightsailAutoSnapshots(unittest.TestCase):
         Tests that the handler honors the value of RENTENTION_DAYS and calls
         the snapshot and prune functions with the expected values.
         """
-        client = Mock()
+        lightsail = Mock()
         self.env = EnvironmentVarGuard()
         self.env.set('RETENTION_DAYS', '90')
 
-        with patch('boto3.client', return_value=client):
+        with patch('boto3.client', return_value=lightsail) as client_factory:
             with self.env:
                 index.handler(Mock(), Mock())
 
-        snapshot_instances_mock.assert_called_with(client)
-        prune_snapshots_mock.assert_called_with(client, timedelta(days=90))
+        client_factory.assert_called_with('lightsail')
+        snapshot_instances_mock.assert_called_with(lightsail)
+        prune_snapshots_mock.assert_called_with(lightsail, timedelta(days=90))
 
 if __name__ == '__main__':
     unittest.main()
