@@ -35,12 +35,12 @@ class TestLightsailAutoSnapshots(unittest.TestCase):
 
     def test_prune_snapshots(self):
         mock_dt = MagicMock()
-        mock_dt.now.return_value = datetime(2016, 12, 02)
+        mock_dt.now.return_value = datetime(2016, 12, 2)
         logger = StringIO()
         client = boto3.client('lightsail')
         stubber = Stubber(client)
         stubber.add_response('get_instance_snapshots', {'instanceSnapshots': [
-            {'name': 'new-snapshot-auto', 'createdAt': datetime(2016, 12, 01)},
+            {'name': 'new-snapshot-auto', 'createdAt': datetime(2016, 12, 1)},
             {'name': 'old-snapshot-auto', 'createdAt': datetime(2016, 10, 15)}
             ]})
         stubber.add_response('delete_instance_snapshot', {}, {
