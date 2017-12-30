@@ -26,6 +26,9 @@ DAYS=90 bin/deploy
 
 ## Install in EU (Ireland) and retain snapshots for 30 days
 REGION=eu-west-1 bin/deploy
+
+## Install in Asia Pacific (Tokyo) and create snapshot every day at 7:00pm UTC, retain snapshots for 30 days
+REGION=ap-northeast-1 SCHEDULE="cron(0 19 * * ? *)" bin/deploy
 ```
 
 ## License

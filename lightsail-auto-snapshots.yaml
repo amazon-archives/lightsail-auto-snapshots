@@ -11,12 +11,18 @@ Parameters:
     Type: String
     Description: The number of days to retain snapshots.
     Default: 30
+  Schedule:
+    Type: String
+    Description: Event schedule of create snapshot.
+    Default: rate(1 day)
 
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterLabels:
       RetentionDays:
         default: Retention Days
+      Schedule:
+        default: Event Schedule
 
 Resources:
   AutoSnapshot:
@@ -33,10 +39,10 @@ Resources:
         Variables:
           RETENTION_DAYS: !Ref RetentionDays
       Events:
-        Daily:
+        Schedule:
           Type: Schedule
           Properties:
-            Schedule: rate(1 day)
+            Schedule: !Ref Schedule
       Policies:
           Statement:
             - Resource: "*"
