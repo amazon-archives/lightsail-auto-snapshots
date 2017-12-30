@@ -3,6 +3,7 @@
 set -o errexit
 
 days=${DAYS:-30}
+schedule=${SCHEDULE:-rate(1 day)}
 region=${REGION:-$(aws configure get region)}
 
 bucket_name="temp-lightsail-auto-snapshots-$(openssl rand -hex 8)"
@@ -18,7 +19,7 @@ aws cloudformation deploy \
   --template-file deploy/output.yaml \
   --stack-name LightsailAutoSnapshots \
   --capabilities CAPABILITY_NAMED_IAM \
-  --parameter-overrides "RetentionDays=${days}" \
+  --parameter-overrides "RetentionDays=${days}" "Schedule=${schedule}" \
   --region $region
 
 aws s3 rb --force "s3://${bucket_name}" --region $region
